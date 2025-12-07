@@ -47,6 +47,7 @@ class RouteDominanceScorer:
         
         # Standardize coordinates
         self._standardize_coordinates()
+        self._standardize_reciever_side()
         
         # Combine all frames
         self.all_frames_df = self._combine_all_frames()
@@ -80,7 +81,26 @@ class RouteDominanceScorer:
         # Add velocity components
         self.input_df["vx"] = self.input_df["s"] * np.cos(np.deg2rad(self.input_df["dir"].fillna(0)))
         self.input_df["vy"] = self.input_df["s"] * np.sin(np.deg2rad(self.input_df["dir"].fillna(0)))
+
+    def _standardize_reciever_side(self):
+        """Flip coordinates of players so reciever always above qb (on the left side from qb's perspective)"""
+        #Find what side the reciever is on
+        qb_pos = self.input_df[(self.input_df["player_role"] == "Passer") & (self.input_df['frame_id'] == 1)][['y_std', 'play_id', 'game_id']]
+        wr_pos = self.input_df[(self.input_df["player_role"] == "Targeted Receiver") & (self.input_df['frame_id'] == 1)][['y_std', 'play_id', 'game_id']]
+        merged_pos = pd.merge(qb_pos, wr_pos, on=['play_id', 'game_id'], how='left')
+        merged_pos['receiver_side'] = np.where(merged_pos['y_std_x'] < merged_pos['y_std_y'], 'left', 'right')
         
+        # Merge receiver_side into input_df, output_df, and supp_df based on game_id and play_id
+        receiver_side_df = merged_pos[['game_id', 'play_id', 'receiver_side']]
+        self.supp_df = self.supp_df.merge(receiver_side_df, on=['game_id', 'play_id'], how='left')
+        self.input_df = self.input_df.merge(receiver_side_df, on=['game_id', 'play_id'], how='left')
+        self.output_df = self.output_df.merge(receiver_side_df, on=['game_id', 'play_id'], how='left')
+
+        #Flip the field of inputs, outputs and ball landing when reciever aligns to right of qb
+        self.input_df.loc[self.input_df['receiver_side'] == 'right', 'y_std'] = FIELD_WIDTH - self.input_df.loc[self.input_df['receiver_side'] == 'right', 'y_std']
+        self.output_df.loc[self.output_df['receiver_side'] == 'right', 'y_std'] = FIELD_WIDTH - self.output_df.loc[self.output_df['receiver_side'] == 'right', 'y_std']
+        self.input_df.loc[self.input_df['receiver_side'] == 'right', 'ball_land_y_std'] = FIELD_WIDTH - self.input_df.loc[self.input_df['receiver_side'] == 'right', 'ball_land_y_std']
+    
     def _combine_all_frames(self) -> pd.DataFrame:
         """
         Combine input and output frames to get complete play sequence
