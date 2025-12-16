@@ -1,0 +1,369 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\geometry{margin=1in}
+
+\title{Route Dominance Scoring Formulas}
+\author{NFL Data Bowl 2025}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+This document explains the mathematical formulas used to calculate the key metrics in the route dominance scoring system.
+
+\section{Time to Ball (Receiver)}
+
+\subsection{Main Formula}
+
+\begin{equation}
+t_{\text{ball}} = \frac{d_{\text{ball}}}{v_{\text{toward}}}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $t_{\text{ball}}$ is the time to ball (seconds)
+    \item $d_{\text{ball}}$ is the distance to ball (yards)
+    \item $v_{\text{toward}}$ is the speed component toward the ball (yards/second)
+\end{itemize}
+
+\subsection{Step-by-Step Calculation}
+
+\subsubsection{Distance to Ball}
+
+\begin{align}
+\Delta x_{\text{ball}} &= x_{\text{ball}} - x_{\text{rec}} \\
+\Delta y_{\text{ball}} &= y_{\text{ball}} - y_{\text{rec}} \\
+d_{\text{ball}} &= \sqrt{(\Delta x_{\text{ball}})^2 + (\Delta y_{\text{ball}})^2}
+\end{align}
+
+\subsubsection{Unit Vector Toward Ball}
+
+\begin{align}
+\hat{u}_x &= \frac{\Delta x_{\text{ball}}}{d_{\text{ball}}} \\
+\hat{u}_y &= \frac{\Delta y_{\text{ball}}}{d_{\text{ball}}}
+\end{align}
+
+\subsubsection{Speed Component Toward Ball}
+
+The speed component toward the ball is calculated using the dot product of the velocity vector and the unit vector toward the ball:
+
+\begin{equation}
+v_{\text{toward}} = v_x \cdot \hat{u}_x + v_y \cdot \hat{u}_y
+\end{equation}
+
+\subsubsection{Time to Ball}
+
+\begin{equation}
+t_{\text{ball}} = \begin{cases}
+\frac{d_{\text{ball}}}{v_{\text{toward}}} & \text{if } v_{\text{toward}} > 0 \\
+\infty & \text{if } v_{\text{toward}} \leq 0
+\end{cases}
+\end{equation}
+
+\subsection{Special Cases}
+
+\begin{itemize}
+    \item If $d_{\text{ball}} = 0$: $t_{\text{ball}} = 0$ (receiver is at ball location)
+    \item If $v_{\text{toward}} \leq 0$: $t_{\text{ball}} = \infty$ (receiver not moving toward ball)
+\end{itemize}
+
+\section{Defender Time to Ball}
+
+\subsection{Main Formula}
+
+\begin{equation}
+t_{\text{def}} = \frac{d_{\text{def}}}{v_{\text{def,toward}}}
+\end{equation}
+
+\subsection{Step-by-Step Calculation}
+
+\subsubsection{Distance from Defender to Ball}
+
+\begin{align}
+\Delta x_{\text{def}} &= x_{\text{ball}} - x_{\text{def}} \\
+\Delta y_{\text{def}} &= y_{\text{ball}} - y_{\text{def}} \\
+d_{\text{def}} &= \sqrt{(\Delta x_{\text{def}})^2 + (\Delta y_{\text{def}})^2}
+\end{align}
+
+\subsubsection{Unit Vector from Defender to Ball}
+
+\begin{align}
+\hat{u}_{\text{def},x} &= \frac{\Delta x_{\text{def}}}{d_{\text{def}}} \\
+\hat{u}_{\text{def},y} &= \frac{\Delta y_{\text{def}}}{d_{\text{def}}}
+\end{align}
+
+\subsubsection{Defender Velocity Components}
+
+If velocity components are available:
+\begin{align}
+v_{\text{def},x} &= v_{x,\text{def}} \\
+v_{\text{def},y} &= v_{y,\text{def}}
+\end{align}
+
+Otherwise, calculate from speed and direction:
+\begin{align}
+v_{\text{def},x} &= s_{\text{def}} \cdot \cos(\theta_{\text{def}}) \\
+v_{\text{def},y} &= s_{\text{def}} \cdot \sin(\theta_{\text{def}})
+\end{align}
+
+where $\theta_{\text{def}}$ is the defender's direction in radians.
+
+\subsubsection{Defender Speed Component Toward Ball}
+
+\begin{equation}
+v_{\text{def,toward}} = v_{\text{def},x} \cdot \hat{u}_{\text{def},x} + v_{\text{def},y} \cdot \hat{u}_{\text{def},y}
+\end{equation}
+
+\subsubsection{Defender Time to Ball}
+
+\begin{equation}
+t_{\text{def}} = \begin{cases}
+\frac{d_{\text{def}}}{v_{\text{def,toward}}} & \text{if } v_{\text{def,toward}} > 0 \\
+\infty & \text{if } v_{\text{def,toward}} \leq 0
+\end{cases}
+\end{equation}
+
+\subsection{Special Cases}
+
+\begin{itemize}
+    \item If $d_{\text{def}} = 0$: $t_{\text{def}} = 0$
+    \item If $v_{\text{def,toward}} \leq 0$: $t_{\text{def}} = \infty$ (defender moving away from ball)
+\end{itemize}
+
+\section{Time Advantage}
+
+\subsection{Formula}
+
+\begin{equation}
+\Delta t = t_{\text{def}} - t_{\text{ball}}
+\end{equation}
+
+\subsection{Interpretation}
+
+\begin{itemize}
+    \item \textbf{Positive value} ($\Delta t > 0$): Receiver reaches ball before defender (advantage for receiver)
+    \item \textbf{Negative value} ($\Delta t < 0$): Defender reaches ball before receiver (advantage for defender)
+    \item \textbf{Zero} ($\Delta t = 0$): Both reach ball at the same time
+\end{itemize}
+
+\subsection{Example}
+
+If $t_{\text{ball}} = 2.5$ seconds and $t_{\text{def}} = 3.2$ seconds, then:
+\begin{equation}
+\Delta t = 3.2 - 2.5 = 0.7 \text{ seconds}
+\end{equation}
+
+The receiver has a 0.7 second advantage.
+
+\subsection{Special Cases}
+
+If either $t_{\text{ball}}$ or $t_{\text{def}}$ is $\infty$, then $\Delta t = \infty$.
+
+\section{Dominance Score}
+
+\subsection{Main Formula}
+
+The dominance score is a weighted combination of six normalized components:
+
+\begin{equation}
+S_{\text{dom}} = 0.25 \cdot S_{\text{sep}} + 0.18 \cdot S_{\text{speed}} + 0.12 \cdot S_{\text{accel}} + 0.18 \cdot S_{\text{time}} + 0.12 \cdot S_{\text{pressure}} + 0.15 \cdot S_{\text{leverage}}
+\end{equation}
+
+\subsection{Component Calculations}
+
+\subsubsection{Separation Score}
+
+\begin{equation}
+S_{\text{sep}} = \min\left(\frac{d_{\text{sep}}}{10.0}, 1.0\right)
+\end{equation}
+
+where $d_{\text{sep}}$ is the separation to the nearest defender in yards.
+
+\begin{itemize}
+    \item Normalizes separation to $[0, 1]$ scale
+    \item Caps at 1.0 for separations $\geq 10$ yards
+    \item If $d_{\text{sep}} = \infty$, then $S_{\text{sep}} = 0.5$ (neutral)
+\end{itemize}
+
+\subsubsection{Speed Score}
+
+\begin{equation}
+S_{\text{speed}} = \min\left(\frac{v_{\text{rec}}}{8.0}, 1.0\right)
+\end{equation}
+
+where $v_{\text{rec}}$ is the receiver's speed in yards/second.
+
+\begin{itemize}
+    \item Normalizes speed to $[0, 1]$ scale
+    \item Caps at 1.0 for speeds $\geq 8$ yards/second
+    \item If $v_{\text{rec}} \leq 0$, then $S_{\text{speed}} = 0.0$
+\end{itemize}
+
+\subsubsection{Acceleration Score}
+
+\begin{equation}
+S_{\text{accel}} = \frac{\min\left(\max\left(\frac{a_{\text{rec}}}{3.0}, -1.0\right), 1.0\right)}{2.0} + 0.5
+\end{equation}
+
+where $a_{\text{rec}}$ is the receiver's acceleration in yards/second².
+
+\begin{itemize}
+    \item Clamps acceleration to $[-1, 1]$ range (normalized by 3.0 yds/s²)
+    \item Shifts to $[0, 1]$ range by dividing by 2 and adding 0.5
+    \item Positive acceleration $\rightarrow$ higher score, negative $\rightarrow$ lower score
+\end{itemize}
+
+\subsubsection{Time Score}
+
+\begin{equation}
+S_{\text{time}} = \begin{cases}
+\frac{\min\left(\max\left(\frac{\Delta t}{2.0}, -1.0\right), 1.0\right)}{2.0} + 0.5 & \text{if } \Delta t \text{ is finite} \\
+0.5 & \text{if } \Delta t = \infty
+\end{cases}
+\end{equation}
+
+\begin{itemize}
+    \item Clamps time advantage to $[-1, 1]$ range (normalized by 2.0 seconds)
+    \item Shifts to $[0, 1]$ range
+    \item Positive time advantage $\rightarrow$ higher score
+\end{itemize}
+
+\subsubsection{Pressure Score}
+
+\begin{equation}
+S_{\text{pressure}} = 1.0 - \min\left(\frac{n_{\text{def},3}}{5.0}, 1.0\right)
+\end{equation}
+
+where $n_{\text{def},3}$ is the number of defenders within 3 yards.
+
+\begin{itemize}
+    \item Inverse of defender pressure
+    \item More defenders within 3 yards $\rightarrow$ lower score
+    \item Caps at 0.0 when 5+ defenders within 3 yards
+\end{itemize}
+
+\subsubsection{Leverage Score}
+
+\begin{equation}
+S_{\text{leverage}} = \frac{\theta_{\text{leverage}}}{180^\circ}
+\end{equation}
+
+where $\theta_{\text{leverage}}$ is the leverage angle in degrees.
+
+\begin{itemize}
+    \item Normalizes leverage angle to $[0, 1]$ scale
+    \item $180^\circ$ angle (defender directly in front) $\rightarrow$ score $= 1.0$
+    \item $0^\circ$ angle (defender directly behind) $\rightarrow$ score $= 0.0$
+    \item If leverage angle is NaN, then $S_{\text{leverage}} = 0.5$ (neutral)
+\end{itemize}
+
+\subsection{Leverage Angle Calculation}
+
+\subsubsection{Vector from Defender to Receiver}
+
+\begin{align}
+\vec{v}_{\text{def}\rightarrow\text{rec}} &= \begin{pmatrix}
+x_{\text{rec}} - x_{\text{def}} \\
+y_{\text{rec}} - y_{\text{def}}
+\end{pmatrix} \\
+&= \begin{pmatrix}
+\Delta x_{\text{def}\rightarrow\text{rec}} \\
+\Delta y_{\text{def}\rightarrow\text{rec}}
+\end{pmatrix}
+\end{align}
+
+\subsubsection{Vector from Receiver to Ball}
+
+\begin{align}
+\vec{v}_{\text{rec}\rightarrow\text{ball}} &= \begin{pmatrix}
+x_{\text{ball}} - x_{\text{rec}} \\
+y_{\text{ball}} - y_{\text{rec}}
+\end{pmatrix} \\
+&= \begin{pmatrix}
+\Delta x_{\text{rec}\rightarrow\text{ball}} \\
+\Delta y_{\text{rec}\rightarrow\text{ball}}
+\end{pmatrix}
+\end{align}
+
+\subsubsection{Dot Product}
+
+\begin{equation}
+\vec{v}_{\text{def}\rightarrow\text{rec}} \cdot \vec{v}_{\text{rec}\rightarrow\text{ball}} = \Delta x_{\text{def}\rightarrow\text{rec}} \cdot \Delta x_{\text{rec}\rightarrow\text{ball}} + \Delta y_{\text{def}\rightarrow\text{rec}} \cdot \Delta y_{\text{rec}\rightarrow\text{ball}}
+\end{equation}
+
+\subsubsection{Magnitudes}
+
+\begin{align}
+|\vec{v}_{\text{def}\rightarrow\text{rec}}| &= \sqrt{(\Delta x_{\text{def}\rightarrow\text{rec}})^2 + (\Delta y_{\text{def}\rightarrow\text{rec}})^2} \\
+|\vec{v}_{\text{rec}\rightarrow\text{ball}}| &= \sqrt{(\Delta x_{\text{rec}\rightarrow\text{ball}})^2 + (\Delta y_{\text{rec}\rightarrow\text{ball}})^2}
+\end{align}
+
+\subsubsection{Angle Calculation}
+
+\begin{align}
+\cos(\theta) &= \frac{\vec{v}_{\text{def}\rightarrow\text{rec}} \cdot \vec{v}_{\text{rec}\rightarrow\text{ball}}}{|\vec{v}_{\text{def}\rightarrow\text{rec}}| \cdot |\vec{v}_{\text{rec}\rightarrow\text{ball}}|} \\
+\cos(\theta) &= \text{clip}(\cos(\theta), -1.0, 1.0) \quad \text{(prevent numerical errors)} \\
+\theta_{\text{rad}} &= \arccos(\cos(\theta)) \\
+\theta_{\text{deg}} &= \frac{180}{\pi} \cdot \theta_{\text{rad}} \\
+\theta_{\text{leverage}} &= \min(\theta_{\text{deg}}, 180^\circ - \theta_{\text{deg}})
+\end{align}
+
+\section{Summary}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lcccl@{}}
+\toprule
+\textbf{Metric} & \textbf{Formula} & \textbf{Range} & \textbf{Higher is Better?} \\
+\midrule
+Time to Ball & $t_{\text{ball}} = \frac{d_{\text{ball}}}{v_{\text{toward}}}$ & $[0, \infty)$ seconds & No (lower is better) \\
+Defender Time to Ball & $t_{\text{def}} = \frac{d_{\text{def}}}{v_{\text{def,toward}}}$ & $[0, \infty)$ seconds & No (lower is better) \\
+Time Advantage & $\Delta t = t_{\text{def}} - t_{\text{ball}}$ & $(-\infty, \infty)$ seconds & Yes \\
+Dominance Score & Weighted sum of 6 components & $[0, 1]$ & Yes \\
+\bottomrule
+\end{tabular}
+\caption{Summary of key metrics}
+\end{table}
+
+\subsection{Dominance Score Weights}
+
+\begin{itemize}
+    \item Separation: 25\%
+    \item Speed: 18\%
+    \item Acceleration: 12\%
+    \item Time Advantage: 18\%
+    \item Pressure: 12\%
+    \item Leverage: 15\%
+\end{itemize}
+
+\section{Notes}
+
+\begin{enumerate}
+    \item \textbf{Coordinate System}: All coordinates are standardized so offense always drives right (left-to-right orientation).
+    
+    \item \textbf{Units}:
+    \begin{itemize}
+        \item Distances: yards
+        \item Speeds: yards/second
+        \item Accelerations: yards/second²
+        \item Times: seconds
+        \item Angles: degrees
+    \end{itemize}
+    
+    \item \textbf{Frame Rate}: NFL tracking data uses 10 frames per second ($\text{FRAME\_RATE} = 10$).
+    
+    \item \textbf{Ball Landing Position}: The ball landing position $(x_{\text{ball}}, y_{\text{ball}})$ is determined from the output data (post-throw frames).
+\end{enumerate}
+
+\end{document}
+
